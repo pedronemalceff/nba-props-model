@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Data / models (regenerate locally)
+backend/data/*
+!backend/data/.gitkeep
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# Env
+.env
+*.tsbuildinfo
