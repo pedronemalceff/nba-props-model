@@ -74,3 +74,56 @@ export function refreshPicks(date?: string) {
   if (date) q.set("date", date);
   return req<PicksResponse>(`/api/refresh?${q}`, { method: "POST" });
 }
+
+export type ReviewSummary = {
+  market: string;
+  n: number;
+  mae_model: number;
+  mae_l10: number;
+  hit_rate: number;
+  n_confident: number;
+  hit_rate_confident: number | null;
+};
+
+export type ReviewRow = {
+  player_id: number;
+  player: string;
+  team: string;
+  opponent: string;
+  home: boolean;
+  market: string;
+  projection: number;
+  actual: number;
+  l10_avg: number;
+  line: number;
+  side: "OVER" | "UNDER";
+  prob: number;
+  result: "W" | "L";
+  minutes: number;
+};
+
+export type GradedPick = {
+  player: string;
+  market: string;
+  side: string;
+  line: number;
+  projection: number;
+  price: string;
+  book: string;
+  actual: number | null;
+  result: "W" | "L" | "P" | "DNP";
+};
+
+export type ReviewResponse = {
+  date: string;
+  line_type: string;
+  summary: ReviewSummary[];
+  rows: ReviewRow[];
+  graded_picks: { picks: GradedPick[]; record: Record<string, number>; units: number } | null;
+};
+
+export function getReview(date: string, refresh = false) {
+  const q = new URLSearchParams({ date });
+  if (refresh) q.set("refresh", "true");
+  return req<ReviewResponse>(`/api/review?${q}`);
+}

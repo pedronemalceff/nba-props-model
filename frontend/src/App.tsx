@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { getHealth, getPicks, refreshPicks, type PicksResponse } from "./api";
 import PickCard from "./components/PickCard";
 import Board from "./components/Board";
+import Review from "./components/Review";
 
 const MARKETS = ["PTS", "REB", "AST", "3PM", "PRA", "PR", "PA"];
 
@@ -19,7 +20,7 @@ export default function App() {
   const [data, setData] = useState<PicksResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState<"picks" | "board">("picks");
+  const [tab, setTab] = useState<"picks" | "board" | "review">("picks");
   const [ready, setReady] = useState(false);
 
   // Default to demo mode when the backend has no Odds API key configured.
@@ -114,11 +115,14 @@ export default function App() {
         <button className={tab === "board" ? "on" : ""} onClick={() => setTab("board")}>
           Full board {data ? `(${data.board.length})` : ""}
         </button>
+        <button className={tab === "review" ? "on" : ""} onClick={() => setTab("review")}>
+          Results
+        </button>
       </nav>
 
-      {error && <div className="error">{error}</div>}
-      {data?.note && <div className="note">{data.note}</div>}
-      {loading && !data && <div className="note">Building projections… first run can take a minute.</div>}
+      {tab !== "review" && error && <div className="error">{error}</div>}
+      {tab !== "review" && data?.note && <div className="note">{data.note}</div>}
+      {tab !== "review" && loading && !data && <div className="note">Building projections… first run can take a minute.</div>}
 
       {data && tab === "picks" && (
         <section className="grid">
@@ -129,6 +133,7 @@ export default function App() {
         </section>
       )}
       {data && tab === "board" && <Board rows={data.board} />}
+      {tab === "review" && <Review />}
 
       <footer>
         Projections are estimates, not guarantees. For research and entertainment; bet responsibly.

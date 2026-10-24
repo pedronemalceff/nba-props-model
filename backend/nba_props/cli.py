@@ -4,6 +4,7 @@
     python -m nba_props.cli train             # train all market models
     python -m nba_props.cli picks --limit 10  # today's best props -> data/picks/<date>.json
     python -m nba_props.cli backtest          # hold-out evaluation
+    python -m nba_props.cli review --date 2026-10-23   # projections vs results for a past day
     python -m nba_props.cli demo              # synthetic end-to-end run, no network
 """
 from __future__ import annotations
@@ -44,6 +45,8 @@ def main(argv=None):
     pk.add_argument("--refresh-odds", action="store_true", help="re-pull lines (costs credits)")
     b = sub.add_parser("backtest"); b.add_argument("--days", type=int, default=45)
     b.add_argument("--demo", action="store_true")
+    rv = sub.add_parser("review", help="projections vs actual results for a past date")
+    rv.add_argument("--date", type=_date, required=True)
     d = sub.add_parser("demo"); d.add_argument("--limit", type=int, default=10)
     d.add_argument("--retrain", action="store_true")
     a = ap.parse_args(argv)
@@ -72,6 +75,13 @@ def main(argv=None):
         res = pipeline.backtest(frame, feats, a.days)
         with pd.option_context("display.float_format", "{:.3f}".format, "display.width", 200):
             print(res.to_string(index=False))
+    elif a.cmd == "review":
+        r = pipeline.run_review(a.date, refresh=True)
+        with pd.option_context("display.width", 200):
+            print(pd.DataFrame(r["summary"]).to_string(index=False))
+        if r["graded_picks"]:
+            g = r["graded_picks"]
+            print(f"\nSaved picks: {g['record']}  units {g['units']:+.2f}")
     elif a.cmd == "demo":
         _print_picks(pipeline.run_demo(a.limit, a.retrain))
 

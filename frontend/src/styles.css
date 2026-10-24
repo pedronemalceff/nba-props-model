@@ -135,3 +135,37 @@ h1 { margin: 0; font-size: 26px; letter-spacing: -0.02em; }
 .side-cell { font-weight: 600; }
 
 footer { margin-top: 40px; font-size: 12px; color: var(--muted); text-align: center; }
+
+/* Results / review tab */
+.review-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.review-bar input[type="date"] {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px;
+}
+.review-bar button {
+  background: var(--accent); border: 0; color: #fff; padding: 8px 14px; border-radius: 8px; cursor: pointer;
+}
+.review-bar button.ghost { background: var(--panel); color: var(--text); border: 1px solid var(--line); }
+.review-bar button:disabled { opacity: 0.5; cursor: default; }
+.hint { color: var(--muted); font-size: 13px; margin: 10px 0 16px; max-width: 760px; }
+.summary-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 18px; }
+.sum-card {
+  text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  padding: 12px; cursor: pointer;
+}
+.sum-card.on { border-color: var(--accent); }
+.sum-mkt { font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: 0.04em; }
+.sum-main { font-size: 24px; font-weight: 700; margin: 2px 0; }
+.sum-sub { font-size: 12px; color: var(--muted); }
+.review-filters { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+.review-filters .hint { margin: 0; }
+.review .search { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; width: 260px; }
+.review table { width: 100%; border-collapse: collapse; font-size: 14px; background: var(--panel); }
+.review th, .review td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.review th { cursor: pointer; color: var(--muted); font-weight: 500; background: var(--panel-2); user-select: none; }
+.review td { font-variant-numeric: tabular-nums; }
+.res { font-weight: 700; }
+.res.W { color: var(--pos); }
+.res.L { color: var(--neg); }
+.res.P, .res.DNP { color: var(--muted); }
+.graded { margin-bottom: 20px; }
+.graded h3 { font-size: 16px; margin: 0 0 10px; }

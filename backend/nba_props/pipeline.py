@@ -110,3 +110,19 @@ def backtest(frame: pd.DataFrame, feats: list[str], test_days: int = 45, markets
             "n_conf58": int(strong.sum()),
         })
     return pd.DataFrame(out)
+
+
+# ----------------------------------------------------------------------- review
+def run_review(day: date, refresh: bool = False) -> dict:
+    """Projections vs actual results for a past date (see review.py)."""
+    from .review import load_review, review_day, save_review
+
+    if not refresh:
+        cached = load_review(day)
+        if cached:
+            return cached
+    plogs, tlogs, pos, _ = load_data(today_local(), refresh=True)
+    payload = review_day(day, plogs, tlogs, pos)
+    if day < today_local():
+        save_review(payload)
+    return payload

@@ -144,3 +144,30 @@ def test_preferred_book_pricing():
     raw2 = pd.DataFrame(parse_event_odds(_ev([("draftkings", 26.5, +100, -120)])))
     s2 = summarize_lines(raw2, ["hardrockbet_fl"])
     assert len(s2) == 1 and s2.attrs["preferred_missing"]
+
+
+def test_review_past_day(tmp_path):
+    import json
+    from datetime import date as _date
+
+    from nba_props import model as M
+    from nba_props.review import review_day
+
+    p, t, pos, _ = generate(seasons=("2025-26",), days_per_season=70, seed=9)
+    frame, feats = build_features(p, t, pos)
+    base = {m: M.fit_market(frame, feats, m, num_rounds=80) for m in ("PTS", "AST")}
+    day = sorted(p["GAME_DATE"].unique())[-3]
+    # A fake saved pick for that day, to check real-line grading
+    row = p[p["GAME_DATE"] == day].iloc[0]
+    (tmp_path / "picks").mkdir()
+    (tmp_path / "picks" / f"{day}.json").write_text(json.dumps({"demo": False, "picks": [{
+        "player_id": int(row["PLAYER_ID"]), "player": row["PLAYER_NAME"], "market": "PTS",
+        "side": "OVER", "line": float(row["PTS"]) - 0.5, "projection": 10, "price": "-110",
+        "book": "Hard Rock Bet"}]}))
+    out = review_day(_date.fromisoformat(day), p, t, pos, base_models=base,
+                     model_root=tmp_path / "asof", picks_dir=tmp_path / "picks")
+    assert {s["market"] for s in out["summary"]} == {"PTS", "AST"}
+    assert out["rows"] and all(r["result"] in ("W", "L") for r in out["rows"])
+    assert out["graded_picks"]["record"]["W"] == 1
+    # As-of model must only know games before the reviewed day
+    assert json.loads((tmp_path / "asof" / day / "summary.json").read_text())["cutoff"] == day

@@ -68,6 +68,14 @@ def refresh(day: date | None = Query(None, alias="date"), odds: bool = True):
     return _run(lambda: pipeline.run_picks(day, 25, refresh_odds=odds))
 
 
+@app.get("/api/review")
+def review(day: date = Query(..., alias="date"), refresh: bool = False):
+    """What the model would have projected for a past date vs what happened."""
+    if day >= pipeline.today_local():
+        raise HTTPException(400, "Pick a date before today; games need to be finished.")
+    return _run(lambda: pipeline.run_review(day, refresh))
+
+
 def _run(fn):
     if not _lock.acquire(blocking=False):
         raise HTTPException(409, "A refresh is already running, try again shortly.")
