@@ -112,3 +112,12 @@ def test_end_to_end_demo(tmp_path, monkeypatch):
         assert pk["factors"] and 0 < pk["blended_prob"] < 1
     players = [pk["player_id"] for pk in out["picks"]]
     assert len(players) == len(set(players))
+
+
+def test_object_dtypes_from_empty_seasons(league):
+    """nba_api returns empty object-typed frames (e.g. no playoffs yet); concat must not break."""
+    p, t, pos, _ = league
+    p2 = pd.concat([p, pd.DataFrame(columns=p.columns, dtype=object)], ignore_index=True)
+    t2 = pd.concat([t, pd.DataFrame(columns=t.columns, dtype=object)], ignore_index=True)
+    f, _ = build_features(p2, t2, pos)
+    assert len(f) > 0

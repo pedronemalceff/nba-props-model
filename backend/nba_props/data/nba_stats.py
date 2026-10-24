@@ -53,8 +53,11 @@ def _fetch_gamelog(season: str, kind: str) -> pd.DataFrame:
             season_type_all_star=stype,
         )
         df["SEASON_TYPE"] = stype
-        frames.append(df)
+        if len(df):  # skip empty results (e.g. playoffs before they start)
+            frames.append(df)
         time.sleep(1.0)
+    if not frames:
+        return pd.DataFrame()
     df = pd.concat(frames, ignore_index=True)
     df["SEASON"] = season
     return df

@@ -1,0 +1,5 @@
+# Paste your key from https://the-odds-api.com right after the = (no spaces)
+ODDS_API_KEY=
+
+# Only pull lines from Hard Rock Bet (Florida)
+ODDS_BOOKMAKERS=hardrockbet_fl

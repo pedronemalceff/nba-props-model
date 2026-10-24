@@ -7,9 +7,11 @@ from __future__ import annotations
 import logging
 import threading
 from datetime import date
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from . import model as M
 from . import pipeline
@@ -77,3 +79,10 @@ def _run(fn):
         raise HTTPException(502, str(e)) from e
     finally:
         _lock.release()
+
+
+# Serve the pre-built React UI at http://localhost:8000 so Node isn't needed to use it.
+# Rebuild with `npm run build` in frontend/ and copy dist/ here after UI changes.
+_STATIC = Path(__file__).parent / "static"
+if _STATIC.exists():
+    app.mount("/", StaticFiles(directory=_STATIC, html=True), name="ui")

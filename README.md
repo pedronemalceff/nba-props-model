@@ -32,6 +32,12 @@ The Odds API ──────┴───────────────�
 4. **Ranking**: model probability is blended with the market's no-vig probability (`MODEL_WEIGHT`, default 0.65), then EV is computed against the best available price across books. Filters: min probability, min EV, min recent minutes, no Out/Doubtful players, Questionable players penalized. Diversified to max 1 prop per player and 3 per game.
 5. **Explanations**: each pick shows its top contextual drivers (SHAP contributions from LightGBM), plus L10, season, vs-opponent averages and L10 hit rate.
 
+## Use the app
+
+After setup (below), double-click **start.bat** in the project folder. It starts the model and opens the UI at http://localhost:8000. Keep the black window open while you use it. Use the **Refresh lines** button to pull today's lines and injuries.
+
+The built UI lives in `backend/nba_props/static`, so Node is only needed if you change the frontend (`npm run build`, then copy `frontend/dist` into that folder).
+
 ## Quick start
 
 ```bash

@@ -47,8 +47,18 @@ def _parse_min(s: pd.Series) -> pd.Series:
     return s.astype(float)
 
 
+NUMERIC = ["FGM", "FGA", "FG3M", "FG3A", "FTM", "FTA", "OREB", "DREB", "REB", "AST",
+           "STL", "BLK", "TOV", "PF", "PTS", "PLUS_MINUS"]
+
+
 def _base(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
+    # Empty seasons (e.g. no playoffs yet) come back with object columns; force numbers.
+    for c in NUMERIC:
+        if c in df.columns:
+            df[c] = pd.to_numeric(df[c], errors="coerce")
+    if "PLAYER_ID" in df.columns:
+        df["PLAYER_ID"] = pd.to_numeric(df["PLAYER_ID"], errors="coerce").astype("int64")
     df["GAME_DATE"] = pd.to_datetime(df["GAME_DATE"])
     df["MIN"] = _parse_min(df["MIN"])
     df["TEAM"] = df["TEAM_ABBREVIATION"]

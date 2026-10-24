@@ -29,7 +29,7 @@ export default function App() {
         if (!h.odds_api_key) setDemo(true);
         setReady(true);
       })
-      .catch(() => setError("Can't reach the API. Start it with: uvicorn nba_props.api:app --port 8000"));
+      .catch(() => setError("Can't reach the model. Double-click start.bat in the project folder to start it."));
   }, []);
 
   const load = useCallback(async () => {
