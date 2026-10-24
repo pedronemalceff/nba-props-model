@@ -17,3 +17,6 @@ frontend/dist/
 # Env
 .env
 *.tsbuildinfo
+
+# Files dropped in by Claude
+Claude outputs/
