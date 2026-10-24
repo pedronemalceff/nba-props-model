@@ -21,7 +21,7 @@ from ..teams import to_abbr
 log = logging.getLogger(__name__)
 BASE = "https://api.the-odds-api.com/v4/sports/basketball_nba"
 
-LINE_COLS = ["EVENT_ID", "COMMENCE", "HOME", "AWAY", "BOOK", "MARKET",
+LINE_COLS = ["EVENT_ID", "COMMENCE", "HOME", "AWAY", "BOOK", "BOOK_KEY", "MARKET",
              "PLAYER_NAME", "LINE", "SIDE", "PRICE"]
 
 
@@ -58,6 +58,7 @@ def parse_event_odds(ev: dict) -> list[dict]:
                     "HOME": to_abbr(ev.get("home_team", "")),
                     "AWAY": to_abbr(ev.get("away_team", "")),
                     "BOOK": bk.get("title") or bk.get("key"),
+                    "BOOK_KEY": bk.get("key"),
                     "MARKET": market,
                     "PLAYER_NAME": o.get("description"),
                     "LINE": float(o["point"]),
@@ -96,33 +97,52 @@ def fetch_props(day: date, refresh: bool = False) -> pd.DataFrame:
                     continue
                 events.append(rr.json())
             log.info("Odds API credits remaining: %s", r.headers.get("x-requests-remaining"))
-        path.write_text(json.dumps(events))
+        # Don't cache an empty pull (lines often post later in the day).
+        if any(ev.get("bookmakers") for ev in events):
+            path.write_text(json.dumps(events))
+        else:
+            log.warning("Odds API returned games but no prop lines for %s", day)
     rows = [row for ev in events for row in parse_event_odds(ev)]
     return pd.DataFrame(rows, columns=LINE_COLS)
 
 
-def summarize_lines(raw: pd.DataFrame) -> pd.DataFrame:
+def summarize_lines(raw: pd.DataFrame, preferred: list[str] | None = None) -> pd.DataFrame:
     """One row per (player, market, line): best price per side + no-vig fair prob.
 
-    Uses the most common line for each player/market so books are comparable.
+    The fair (no-vig) probability uses every book in the pull, which is a sharper
+    read of the market. When `preferred` book keys are given (e.g. the only book you
+    bet at), prices come from those books only and props they don't offer are
+    dropped. If the preferred books have no props at all, every book is used and
+    the result has attrs["preferred_missing"] = True.
     """
     if raw.empty:
         return pd.DataFrame()
+    if "BOOK_KEY" not in raw:
+        raw = raw.assign(BOOK_KEY=raw["BOOK"])
     keys = ["EVENT_ID", "PLAYER_NAME", "MARKET"]
-    main_line = (raw.groupby(keys + ["LINE"]).size().reset_index(name="n")
+    pref = [p.strip() for p in (preferred or []) if p.strip()]
+    pref_raw = raw[raw["BOOK_KEY"].isin(pref)] if pref else raw.iloc[0:0]
+    use_pref = bool(pref) and not pref_raw.empty
+    # Main line: the preferred book's line if betting there, else the most common line.
+    basis = pref_raw if use_pref else raw
+    main_line = (basis.groupby(keys + ["LINE"]).size().reset_index(name="n")
                  .sort_values("n", ascending=False).drop_duplicates(keys))
     df = raw.merge(main_line[keys + ["LINE"]], on=keys + ["LINE"])
-    wide = df.pivot_table(index=keys + ["LINE", "BOOK", "HOME", "AWAY", "COMMENCE"],
+    wide = df.pivot_table(index=keys + ["LINE", "BOOK", "BOOK_KEY", "HOME", "AWAY", "COMMENCE"],
                           columns="SIDE", values="PRICE", aggfunc="first").reset_index()
-    wide = wide.dropna(subset=["OVER", "UNDER"])
+    wide = wide.dropna(subset=["OVER", "UNDER"]) if {"OVER", "UNDER"} <= set(wide.columns) else wide.iloc[0:0]
     if wide.empty:
         return pd.DataFrame()
     io, iu = wide["OVER"].map(implied_prob), wide["UNDER"].map(implied_prob)
     wide["FAIR_OVER"] = io / (io + iu)
     g = wide.groupby(keys + ["LINE", "HOME", "AWAY", "COMMENCE"])
     out = g.agg(FAIR_OVER=("FAIR_OVER", "median"), N_BOOKS=("BOOK", "nunique")).reset_index()
-    best_o = wide.loc[g["OVER"].idxmax(), keys + ["OVER", "BOOK"]].rename(
+    priced = wide[wide["BOOK_KEY"].isin(pref)] if use_pref else wide
+    gp = priced.groupby(keys)
+    best_o = priced.loc[gp["OVER"].idxmax(), keys + ["OVER", "BOOK"]].rename(
         columns={"OVER": "BEST_OVER", "BOOK": "BEST_OVER_BOOK"})
-    best_u = wide.loc[g["UNDER"].idxmax(), keys + ["UNDER", "BOOK"]].rename(
+    best_u = priced.loc[gp["UNDER"].idxmax(), keys + ["UNDER", "BOOK"]].rename(
         columns={"UNDER": "BEST_UNDER", "BOOK": "BEST_UNDER_BOOK"})
-    return out.merge(best_o, on=keys).merge(best_u, on=keys)
+    res = out.merge(best_o, on=keys).merge(best_u, on=keys)
+    res.attrs["preferred_missing"] = bool(pref) and not use_pref
+    return res

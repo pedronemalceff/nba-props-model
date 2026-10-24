@@ -121,3 +121,26 @@ def test_object_dtypes_from_empty_seasons(league):
     t2 = pd.concat([t, pd.DataFrame(columns=t.columns, dtype=object)], ignore_index=True)
     f, _ = build_features(p2, t2, pos)
     assert len(f) > 0
+
+
+def _ev(books):
+    return {"id": "e1", "commence_time": "2026-10-24T23:00:00Z", "home_team": "Boston Celtics",
+            "away_team": "New York Knicks", "bookmakers": [
+                {"key": k, "title": k, "markets": [{"key": "player_points", "outcomes": [
+                    {"name": "Over", "description": "Jalen Brunson", "price": o, "point": ln},
+                    {"name": "Under", "description": "Jalen Brunson", "price": u, "point": ln}]}]}
+                for k, ln, o, u in books]}
+
+
+def test_preferred_book_pricing():
+    raw = pd.DataFrame(parse_event_odds(_ev([
+        ("draftkings", 26.5, +100, -120), ("fanduel", 26.5, -105, -115),
+        ("hardrockbet_fl", 27.5, -110, -110)])))
+    s = summarize_lines(raw, ["hardrockbet_fl"])
+    r = s.iloc[0]
+    assert r["LINE"] == 27.5 and r["BEST_OVER_BOOK"] == "hardrockbet_fl"
+    assert not s.attrs["preferred_missing"]
+    # Preferred book absent -> fall back to all books and flag it
+    raw2 = pd.DataFrame(parse_event_odds(_ev([("draftkings", 26.5, +100, -120)])))
+    s2 = summarize_lines(raw2, ["hardrockbet_fl"])
+    assert len(s2) == 1 and s2.attrs["preferred_missing"]

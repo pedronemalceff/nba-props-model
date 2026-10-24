@@ -50,6 +50,11 @@ class Settings:
     odds_regions: str = os.getenv("ODDS_REGIONS", "us")
     # Comma list, e.g. "draftkings,fanduel". Empty = all books in the region.
     odds_bookmakers: str = os.getenv("ODDS_BOOKMAKERS", "")
+    # Book keys you actually bet at; picks are priced only at these. Other books
+    # in the pull still feed the market (no-vig) probability.
+    preferred_books: list[str] = field(
+        default_factory=lambda: [b for b in os.getenv("PREFERRED_BOOKS", "").split(",") if b.strip()]
+    )
     markets: list[str] = field(
         default_factory=lambda: os.getenv("MARKETS", ",".join(MARKETS)).split(",")
     )

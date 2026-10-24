@@ -111,9 +111,16 @@ def generate_picks(day: date, plogs, tlogs, positions, raw_lines: pd.DataFrame,
                    injuries: pd.DataFrame, models: dict, limit: int = 10,
                    current_team: dict | None = None, demo: bool = False) -> dict:
     s = settings
-    lines = summarize_lines(raw_lines)
+    lines = summarize_lines(raw_lines, [] if demo else s.preferred_books)
     if lines.empty:
-        return _payload(day, [], [], demo, note="No prop lines found for this date.")
+        msg = ("No prop lines posted yet for this date. Books often post props a few hours "
+               "before tip-off; try Refresh lines later.") if raw_lines.empty else \
+              "No prop lines found for this date."
+        return _payload(day, [], [], demo, note=msg)
+    note = None
+    if lines.attrs.get("preferred_missing"):
+        note = (f"Your book ({', '.join(s.preferred_books)}) has no props posted yet; "
+                "showing prices from other books for now.")
     if current_team is None:
         cur = plogs.copy()
         cur["GAME_DATE"] = pd.to_datetime(cur["GAME_DATE"])
@@ -210,7 +217,7 @@ def generate_picks(day: date, plogs, tlogs, positions, raw_lines: pd.DataFrame,
         if len(picks) >= limit:
             break
     board_out = board.sort_values("ev", ascending=False).head(300).to_dict("records")
-    return _payload(day, picks, board_out, demo)
+    return _payload(day, picks, board_out, demo, note=note)
 
 
 def _num(v):
